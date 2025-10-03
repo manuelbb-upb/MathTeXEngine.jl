@@ -13,6 +13,7 @@ using GeometryBasics: Point2f, Rect2f
 using REPL.REPLCompletions: latex_symbols
 using RelocatableFolders
 
+import FreeTypeAbstraction as FTA
 import FreeTypeAbstraction:
     ascender, boundingbox, descender, get_extent, glyph_index,
     hadvance, inkheight, inkwidth,

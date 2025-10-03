@@ -318,6 +318,7 @@ end
 
 function hadvance(g::Group)
     adv = xpositions(g) .+ hadvance.(g.elements) .* g.scales
+    # TODO account for kerning? 
     return maximum(adv)
 end
 

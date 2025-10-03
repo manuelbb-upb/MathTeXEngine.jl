@@ -282,16 +282,37 @@ end
 
 tex_layout(::Nothing, state) = Space(0)
 
+const DEBUG_KERNING = Ref(false)
+
 """
     horizontal_layout(elements)
 
 Layout the elements horizontally, like normal text.
 """
 function horizontal_layout(elements)
-    dxs = hadvance.(elements)
-    xs = [0, cumsum(dxs[1:end-1])...]
+    global DEBUG_KERNING
+    px = 0
+    xs = [0f0,]
+    prev_elem = nothing
+    for (i, elem) = enumerate(elements)
+        if i > 1 && DEBUG_KERNING[]
+            kx = kerning(prev_elem, elem)       # what about group.scales?
+            px += kx
+        end
+        dx = hadvance(elem)
+        px += dx
+        push!(xs, px)
+        prev_elem = elem
+    end
+    pop!(xs)    # last postion not needed
 
     return Group(elements, Point2f.(xs, 0))
+end
+
+kerning(prev_elem, elem) = 0
+function kerning(prev_elem::TeXChar, elem::TeXChar)
+    prev_elem.font != elem.font && return 0
+    return round(Int, first(FTA.kerning(prev_elem.glyph_id, elem.glyph_id, elem.font)))
 end
 
 function layout_text(string, font_family)
