@@ -1,5 +1,5 @@
-include("opentype_mathtable.jl")
-import .OpenTypeMathTable: MathTable, get_math_constant
+include("OpenTypeTableParsing/OpenTypeTableParsing.jl")
+import .OpenTypeTableParsing: MathTable, get_math_constant
 
 const FONTS = RelocatableFolders.@path joinpath(@__DIR__, "..", "..", "assets", "fonts")
 
