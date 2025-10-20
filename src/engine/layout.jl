@@ -36,7 +36,7 @@ function tex_layout(expr, state)
             if char == ' ' && state.tex_mode == :inline_math
                 return Space(0.0)
             end
-            return TeXChar(char, state, head)
+            return TeXChar(char, state, head, state.nesting_state)
         elseif head == :combining_accent
             accent, core = tex_layout.(args, state)
 
@@ -75,17 +75,17 @@ function tex_layout(expr, state)
             ### special treatment for primes
             sup_is_primes = (!isnothing(args[3]) && args[3].head == :primes)
             
-            script_shrink = if state.script_level[] <= 0
+            script_shrink = if state.nesting_state.level <= 0
                 get_math_constant(math_table, :scriptPercentScaleDown, 80) / 100
             else
                 get_math_constant(math_table, :scriptScriptPercentScaleDown, 60) / 100
             end
-            sub_shrink = script_shrink / state.script_scale[]
-            sup_shrink = (sup_is_primes ? state.script_scale[] : script_shrink) / state.script_scale[]
+            sub_shrink = script_shrink / state.nesting_state.scale
+            sup_shrink = (sup_is_primes ? state.nesting_state.scale : script_shrink) / state.nesting_state.scale
 
             ## layout sub- and superscript
-            sub = tex_layout(args[2], inc_script_level(state, sub_shrink))
-            super = tex_layout(args[3], inc_script_level(state, sup_shrink))
+            sub = tex_layout(args[2], new_script_state(state, sub_shrink))
+            super = tex_layout(args[3], new_script_state(state, sup_shrink; disable_ssty=sup_is_primes))
             
             ## Y-Positions
             _1_5_x_height = abs(1/5 * xheight(font_family)) 
@@ -140,7 +140,7 @@ function tex_layout(expr, state)
             
             ## add post spaces in script boxes
             script_space = get_math_constant(math_table, :spaceAfterScript, 1/24, true)
-            if state.script_level[] > 0
+            if state.nesting_state.level > 0
                 ## TODO this is not standard
                 script_space * .6
             end

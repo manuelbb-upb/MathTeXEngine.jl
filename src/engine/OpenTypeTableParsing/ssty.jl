@@ -462,6 +462,7 @@ function __upget_lookup_tables!(ssty_data, buffer::IOBuffer, header::GSUBHeader,
             break
         end
     end
+    isnothing(feature_record) && return LookupTable[]
     feature_table = FeatureTable(buffer, feature_record)
     lookup_tables = ssty_data.lookup_tables = LookupTables(buffer, feature_table, lookup_list)
     return lookup_tables
@@ -476,7 +477,7 @@ function __upget_lookup_subtable_dict!(
     ssty_data, buffer::IOBuffer, lookup_tables::Vector, lookup_subtable_dict::Nothing
 )   
     lookup_subtable_dict = ssty_data.lookup_subtable_dict = Dict{LookupTable, Vector{Union{Nothing, LOOKUP_SUB_TABLE}}}()
-    
+
     for lt in lookup_tables
         if !haskey(lookup_subtable_dict, lt)
             lookup_subtable_dict[lt] = [
@@ -513,6 +514,7 @@ end
 function __loopsubs_glyph_id(
     buffer::IOBuffer, lookup_tables::Vector, lookup_subtable_dict::Dict, coverage_table_dict::Dict, glyph_id, subscript_level
 )
+    isempty(lookup_tables) && return glyph_id
     alt_glyph_id = glyph_id
     for lt in lookup_tables
         for st in lookup_subtable_dict[lt]
