@@ -1,3 +1,6 @@
+include("OpenTypeTableParsing/OpenTypeTableParsing.jl")
+import .OpenTypeTableParsing: MathTable, get_math_constant, SSTYData, _ssty_glyph_id
+
 const FONTS = RelocatableFolders.@path joinpath(@__DIR__, "..", "..", "assets", "fonts")
 
 function full_fontpath(fontname::AbstractString)
@@ -6,6 +9,10 @@ function full_fontpath(fontname::AbstractString)
 end
 
 const _cached_fonts = Dict{String, FTFont}()
+
+const _cached_math_tables = Dict{String, Union{Nothing, MathTable}}()
+
+const _cached_ssty_data = Dict{String, SSTYData}()
 
 """
     load_font(str)
@@ -21,6 +28,23 @@ function load_font(str)
         FTFont(path)
     end
 end
+
+function load_math_table(str)
+    path = full_fontpath(str)
+    face = load_font(str)
+    get!(_cached_math_tables, path) do
+        MathTable(face; throw_error=false)
+    end
+end
+
+function load_ssty_data(str)
+    path = full_fontpath(str)
+    face = load_font(str)
+    get!(_cached_ssty_data, path) do
+        SSTYData(; face)
+    end
+end
+get_ssty_data(font_str)=load_ssty_data(font_str)
 
 # Loading the font directly here lead to FreeTypeAbstraction to fail with error
 # code 35, because handles to fonts are C pointer that cannot be fully
@@ -54,13 +78,21 @@ const _default_fonts = Dict(
 const _default_mathfont_command_mapping = Dict(
     ## by default, `\mathbf` now acts like `\symbf`, i.e., its a glyph-substitution switch
     ## rather than a font switch. 
-    ## To have it act like `\textbf`, add an entry `:bf` => (:text, :bf),
+    ## To have it act like `\textbf`, add an entry `:bf => (:text, :bf)`
+)
+
+const _default_enable_ssty = Dict(
+    :regular => true,
+    :italic => true,
+    :bold => true,
+    :bolditalic => true,
+    :math => true,
 )
 
 """
     FontFamily(
         fonts; 
-        font_mapping, font_modifiers, special_chars, slant_angle, thickness,
+        font_mapping, font_modifiers, enable_ssty, special_chars, slant_angle, thickness,
         unicode_math_substitutions, unicode_math_aliases, unicode_math_config,
         mathfont_command_mapping
     )
@@ -85,6 +117,9 @@ A set of font for LaTeX rendering.
     font set. Each entry is a dict that maps a font identifier to another.
     This dict determines the font selection of (nested) `\\textXX` commands.\n
     Defaults to `MathTeXEngine._default_font_modifiers`.
+  - `enable_ssty`: Whether or not to use the "ssty" feature for special super or subscript 
+    glpdhs, if available in an OpenType font.\n
+    Defaults to `MathTeXEngine._default_enable_ssty`.
   - `special_chars` mapping for special characters that should not be
     represented by their default unicode glyph
     (for example necessary to access the big integral glyph).\n
@@ -115,6 +150,7 @@ struct FontFamily
     fonts::Dict{Symbol, String}
     font_mapping::Dict{Symbol, Symbol}
     font_modifiers::Dict{Symbol, Dict{Symbol, Symbol}}
+    enable_ssty::Dict{Symbol, Bool}
     special_chars::Dict{Char, Tuple{String, Int}}
     slant_angle::Float64
     thickness::Float64
@@ -126,6 +162,7 @@ end
 function FontFamily(fonts;
         font_mapping = _default_font_mapping,
         font_modifiers = _default_font_modifiers,
+        enable_ssty = _default_enable_ssty,
         special_chars = Dict{Char, Tuple{String, Int}}(),
         slant_angle = 13,
         thickness = 0.0375,
@@ -145,6 +182,7 @@ function FontFamily(fonts;
         fonts,
         font_mapping,
         font_modifiers,
+        enable_ssty,
         special_chars,
         slant_angle,
         thickness,
@@ -275,6 +313,12 @@ function get_font(font_family::FontFamily, fontstyle::Symbol)
     return load_font(font_family.fonts[fontstyle])
 end
 get_font(fontstyle::Symbol) = get_font(FontFamily(), fontstyle)
+
+function get_math_table(font_family::FontFamily)
+    math_font = get(font_family.fonts, :math, nothing)
+    isnothing(math_font) && return nothing
+    return load_math_table(math_font)
+end
 
 """
     texfont(font_desc=:text)

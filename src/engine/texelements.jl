@@ -148,7 +148,7 @@ struct TeXChar <: TeXElement
     represented_char::Char
 end
 
-function TeXChar(char::Char, state::LayoutState, char_type)
+function TeXChar(char::Char, state::LayoutState, char_type, nesting_state=nothing)
     font_family = state.font_family
 
     if haskey(font_family.special_chars, char)
@@ -156,7 +156,6 @@ function TeXChar(char::Char, state::LayoutState, char_type)
         font = load_font(fontpath)
         return TeXChar(id, font, font_family, false, char)  ## TODO is_slanted
     end
-
     font_id = get_font_id(state, char_type)
     font = get_font(font_family, font_id)
 
@@ -173,9 +172,20 @@ function TeXChar(char::Char, state::LayoutState, char_type)
             end
         end
     end
+    
+    glyph_id = glyph_index(font, char)
+    
+    ## apply "ssty" feature
+    if get(font_family.enable_ssty, font_id, false) && isa(nesting_state, NestingState) 
+        if nesting_state.level >= 1 && !nesting_state.disable_ssty
+            font_path = font_family.fonts[font_id]
+            ssty_data = get_ssty_data(font_path)
+            glyph_id = _ssty_glyph_id(ssty_data, glyph_id, nesting_state.level)
+        end
+    end
 
     return TeXChar(
-        glyph_index(font, char),
+        glyph_id,
         font,
         font_family,
         is_slanted(font_id, char),
