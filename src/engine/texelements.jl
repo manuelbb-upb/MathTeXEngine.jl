@@ -194,7 +194,7 @@ end
 
 function TeXChar(name::AbstractString, state::LayoutState, char_type ; represented='?')
     font_family = state.font_family
-    font_id = get_font_identifier(state, char_type)
+    font_id = get_font_id(state, char_type)
     font = get_font(font_family, font_id)
 
     return TeXChar(

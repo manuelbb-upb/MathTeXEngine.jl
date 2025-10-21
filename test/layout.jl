@@ -116,7 +116,8 @@ end
     end
 
     @testset "Italic Correction" begin
-        ffam = FontFamily()
+        ffam = deepcopy(FontFamily())
+        ffam.font_mapping[:char] = :italic
         
         ffam.math_italics_correction[] = false
         els1 = generate_tex_elements(L"(f)x", ffam)
