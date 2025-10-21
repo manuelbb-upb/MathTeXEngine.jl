@@ -94,7 +94,8 @@ const _default_enable_ssty = Dict(
         fonts; 
         font_mapping, font_modifiers, enable_ssty, special_chars, slant_angle, thickness,
         unicode_math_substitutions, unicode_math_aliases, unicode_math_config,
-        mathfont_command_mapping
+        mathfont_command_mapping,
+        text_italics_correction, math_italics_correction, italics_correction_up_to_it_spacing
     )
 
 A set of font for LaTeX rendering.
@@ -145,6 +146,15 @@ A set of font for LaTeX rendering.
     This corresponds to an entry `:it => (:sym, :it)`.
     To enable legacy behavior, add an entry `:it => (:text, it)`.\n
     Defaults to `MathTeXEngine._default_mathfont_command_mapping`.
+  - `text_italics_correction` is a reference to a Boolean flag to enable or disable 
+    an italics correction heuristic for text.\n
+    Defaults to `Ref(false)`.
+  - `math_italics_correction` is a reference to a Boolean flag to enable or disable 
+    an italics correction heuristic in math expressions.\n
+    Defaults to `Ref(false)`.
+  - `italics_correction_up_to_it_spacing` is a reference to a space in font units 
+    inserted when switching from upright to italic glyphs.\n
+    Defaults to `Ref(0f0)`.
 """
 struct FontFamily
     fonts::Dict{Symbol, String}
@@ -157,6 +167,9 @@ struct FontFamily
     unicode_math_substitutions::Dict{Symbol, Dict{Symbol, Dict{Symbol, Symbol}}}
     unicode_math_aliases::Dict{Symbol, Dict{Symbol, Symbol}}
     mathfont_command_mapping::Dict{Symbol, Tuple{Symbol, Symbol}}
+    text_italics_correction::Base.RefValue{Bool}
+    math_italics_correction::Base.RefValue{Bool}
+    italics_correction_up_to_it_spacing::Base.RefValue{Float32}
 end
 
 function FontFamily(fonts;
@@ -169,8 +182,23 @@ function FontFamily(fonts;
         unicode_math_substitutions = UCM.default_substitutions,
         unicode_math_aliases = UCM.default_aliases,
         unicode_math_config = nothing,
-        mathfont_command_mapping = _default_mathfont_command_mapping
-    )
+        mathfont_command_mapping = _default_mathfont_command_mapping,
+        text_italics_correction=Ref(false),
+        math_italics_correction=Ref(false),
+        italics_correction_up_to_it_spacing=Ref(0f0)
+)
+
+    if !(text_italics_correction isa Ref)
+        text_italics_correction = Ref(text_italics_correction)
+    end
+
+    if !(math_italics_correction isa Ref)
+        math_italics_correction = Ref(math_italics_correction)
+    end
+
+    if !(italics_correction_up_to_it_spacing isa Ref)
+        italics_correction_up_to_it_spacing = Ref(italics_correction_up_to_it_spacing)
+    end
 
     fonts = merge(_default_fonts, Dict(fonts))
 
@@ -188,7 +216,10 @@ function FontFamily(fonts;
         thickness,
         unicode_math_substitutions,
         unicode_math_aliases,
-        mathfont_command_mapping
+        mathfont_command_mapping,
+        text_italics_correction,
+        math_italics_correction,
+        italics_correction_up_to_it_spacing
     )
 end
 
