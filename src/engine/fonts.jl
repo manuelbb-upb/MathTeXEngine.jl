@@ -82,10 +82,10 @@ const _default_mathfont_command_mapping = Dict(
 )
 
 const _default_enable_ssty = Dict(
-    :regular => true,
-    :italic => true,
-    :bold => true,
-    :bolditalic => true,
+    :regular => false,
+    :italic => false,
+    :bold => false,
+    :bolditalic => false,
     :math => true,
 )
 
